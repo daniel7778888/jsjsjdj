@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>DOTA Mobile Online</title>
-    <!-- Библиотека Socket.IO для мультиплеера -->
+    <title>DOTA Mobile 3D Online</title>
+    <!-- Подключаем библиотеку для онлайна -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -12,51 +12,53 @@
         body { overflow: hidden; background: #0a0a12; font-family: 'Segoe UI', sans-serif; }
         #gameCanvas { width: 100vw; height: 100vh; display: block; }
         
-        /* UI Eements */
-        #heroSelect, #settingsModal {
+        /* --- UI ГЕРОЕВ (КРАСИВЫЙ) --- */
+        #heroSelect {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #0a0a15 100%);
             z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        #settingsModal { background: rgba(0,0,0,0.85); display: none; z-index: 3000; }
-
         .select-title { color: #4af; font-size: 28px; font-weight: bold; margin-bottom: 20px; text-shadow: 0 0 20px #4af; }
         .heroes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 400px; }
         .hero-card {
-            background: rgba(30, 40, 60, 0.9); border: 2px solid #446688; border-radius: 12px;
-            padding: 15px; cursor: pointer; text-align: center; color: white;
+            background: linear-gradient(180deg, rgba(30, 40, 60, 0.9) 0%, rgba(20, 25, 40, 0.95) 100%);
+            border: 2px solid rgba(100, 150, 200, 0.3); border-radius: 16px; padding: 15px;
+            cursor: pointer; position: relative; overflow: hidden; text-align: center;
         }
-        .hero-icon { font-size: 30px; margin-bottom: 5px; }
+        .hero-card.fire { border-color: rgba(255, 100, 50, 0.5); }
+        .hero-card.ice { border-color: rgba(100, 200, 255, 0.5); }
+        .hero-card.storm { border-color: rgba(180, 100, 255, 0.5); }
+        .hero-card.shadow { border-color: rgba(100, 255, 150, 0.5); }
+        .hero-icon { font-size: 40px; margin-bottom: 8px; }
+        .hero-name { color: #fff; font-weight: bold; margin-bottom: 5px; }
         
-        /* Settings UI */
-        .settings-panel {
-            background: #1a1a24; border: 2px solid #4af; border-radius: 15px; padding: 25px;
-            width: 300px; text-align: center;
-        }
-        .setting-row { margin-bottom: 20px; }
-        .setting-label { color: #888; font-size: 14px; margin-bottom: 8px; display: block; }
-        .btn-group { display: flex; gap: 5px; justify-content: center; }
-        .btn-opt {
-            background: #222; color: #fff; border: 1px solid #444; padding: 8px 12px;
-            border-radius: 6px; cursor: pointer; flex: 1; font-size: 12px;
-        }
-        .btn-opt.active { background: #4af; border-color: #4af; color: #000; font-weight: bold; }
-        .close-btn {
-            margin-top: 10px; background: #c33; border: none; padding: 10px 30px;
-            color: white; border-radius: 8px; font-weight: bold;
-        }
-        
+        /* --- НАСТРОЙКИ --- */
         #settingsBtn {
             position: fixed; top: 15px; right: 140px; width: 40px; height: 40px;
             background: rgba(0,0,0,0.5); border: 2px solid #555; border-radius: 8px;
             color: #fff; font-size: 24px; display: none; align-items: center; justify-content: center;
             cursor: pointer; z-index: 1000;
         }
+        #settingsModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; z-index: 3000;
+            align-items: center; justify-content: center;
+        }
+        .settings-panel {
+            background: #1a1a24; border: 2px solid #4af; border-radius: 15px; padding: 25px;
+            width: 300px; text-align: center; color: white;
+        }
+        .btn-group { display: flex; gap: 5px; margin: 10px 0 20px 0; }
+        .btn-opt {
+            background: #222; border: 1px solid #444; padding: 8px; border-radius: 6px; 
+            flex: 1; cursor: pointer; font-size: 12px; color: #fff;
+        }
+        .btn-opt.active { background: #4af; color: #000; font-weight: bold; }
 
-        /* Joystick */
+        /* --- ДЖОЙСТИК --- */
         #joystickZone {
             position: fixed; bottom: 50px; left: 50px; width: 120px; height: 120px;
-            z-index: 1000; display: none; /* Controlled by JS */
+            z-index: 1000; display: none;
         }
         .joystick-bg {
             width: 100%; height: 100%; border-radius: 50%; background: rgba(255, 255, 255, 0.1);
@@ -68,382 +70,411 @@
             box-shadow: 0 0 10px #4af; pointer-events: none;
         }
 
-        /* UI Game */
+        /* --- ИГРОВОЙ ИНТЕРФЕЙС --- */
         #ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        
-        /* Reuse existing UI styles (MiniMap, Skills, etc.) - Compacted */
-        .minimap { position: absolute; top: 15px; right: 15px; width: 100px; height: 100px; background: rgba(0,0,0,0.8); border: 1px solid #4af; }
+        .hero-info { position: absolute; top: 15px; left: 15px; }
+        .hero-portrait { width: 50px; height: 50px; background: rgba(20,30,50,0.9); border: 2px solid #4af; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 28px; margin-bottom: 5px; }
+        .hero-bar { width: 140px; height: 14px; background: #000; border: 1px solid #444; margin-bottom: 4px; border-radius: 4px; overflow: hidden; }
+        .hero-bar-fill { height: 100%; transition: width 0.2s; }
+        .hp-bar { background: linear-gradient(90deg, #2c5 0%, #1a4 100%); }
+        .mp-bar { background: linear-gradient(90deg, #38f 0%, #26d 100%); }
+
+        .minimap { position: absolute; top: 15px; right: 15px; width: 100px; height: 100px; background: rgba(10,10,20,0.9); border: 2px solid #4af; border-radius: 8px; }
         .minimap-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; transform: translate(-50%, -50%); }
+
         .abilities-panel {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 10px; pointer-events: auto;
         }
         .ability {
-            width: 55px; height: 55px; border-radius: 10px; background: #222; border: 2px solid #555;
-            display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative;
+            width: 60px; height: 60px; border-radius: 12px; background: rgba(0,0,0,0.6); 
+            border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center;
+            font-size: 26px; position: relative; cursor: pointer;
         }
-        .ability.selected { border-color: #fff; box-shadow: 0 0 15px #fff; transform: scale(1.1); }
-        .ability-cd { 
-            position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8);
-            color:#fff; display:flex; align-items:center; justify-content:center; border-radius:8px; opacity:0;
-        }
+        .ability.selected { transform: scale(1.1); box-shadow: 0 0 20px #4af; border-color: #fff; }
+        .ability-cd { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: bold; font-size: 20px; opacity: 0; }
         .ability-cd.active { opacity: 1; }
-        
-        .hero-info { position: absolute; top: 15px; left: 15px; }
-        .hero-bar { width: 150px; height: 16px; background: #111; border: 1px solid #444; margin-bottom: 4px; position: relative; }
-        .hero-bar-fill { height: 100%; transition: width 0.2s; }
-        .hp-fill { background: #2c5; } .mp-fill { background: #38f; }
-        
-        .cancel-btn { 
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-            background: #a33; padding: 8px 20px; border-radius: 8px; color: white;
-            pointer-events: auto; display: none; font-weight: bold;
-        }
-        .cancel-btn.active { display: block; }
 
-        /* Loading */
-        #loading {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a15;
-            display: none; align-items: center; justify-content: center; color: #4af; font-size: 24px; z-index: 2500;
-        }
+        .cancel-btn { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); padding: 10px 30px; background: #a33; border-radius: 12px; color: white; display: none; pointer-events: auto; cursor: pointer; font-weight: bold; }
+        .cancel-btn.active { display: block; }
+        
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a15; display: none; align-items: center; justify-content: center; color: #4af; font-size: 24px; z-index: 2500; }
     </style>
 </head>
 <body>
-    <!-- Main Menu -->
+    <!-- ГЛАВНОЕ МЕНЮ -->
     <div id="heroSelect">
-        <div class="select-title">DOTA MOBILE</div>
-        <div style="color: #888; margin-bottom: 20px;">Онлайн режим</div>
+        <div class="select-title">ВЫБОР ГЕРОЯ</div>
         <div class="heroes-grid">
-            <div class="hero-card" onclick="startGame('fire')"><div class="hero-icon">🔥</div>Инферно</div>
-            <div class="hero-card" onclick="startGame('ice')"><div class="hero-icon">❄️</div>Фростия</div>
-            <div class="hero-card" onclick="startGame('storm')"><div class="hero-icon">⚡</div>Вольтекс</div>
-            <div class="hero-card" onclick="startGame('shadow')"><div class="hero-icon">💀</div>Умбра</div>
+            <div class="hero-card fire" onclick="startGame('fire')">
+                <div class="hero-icon">🔥</div>
+                <div class="hero-name">Инферно</div>
+                <div style="font-size:12px; color:#aaa">Маг огня • Урон</div>
+            </div>
+            <div class="hero-card ice" onclick="startGame('ice')">
+                <div class="hero-icon">❄️</div>
+                <div class="hero-name">Фростия</div>
+                <div style="font-size:12px; color:#aaa">Ледяной маг • Контроль</div>
+            </div>
+            <div class="hero-card storm" onclick="startGame('storm')">
+                <div class="hero-icon">⚡</div>
+                <div class="hero-name">Вольтекс</div>
+                <div style="font-size:12px; color:#aaa">Молнии • Стан</div>
+            </div>
+            <div class="hero-card shadow" onclick="startGame('shadow')">
+                <div class="hero-icon">💀</div>
+                <div class="hero-name">Умбра</div>
+                <div style="font-size:12px; color:#aaa">Тьма • Вампиризм</div>
+            </div>
         </div>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- МЕНЮ НАСТРОЕК -->
     <div id="settingsModal">
         <div class="settings-panel">
-            <div class="select-title" style="font-size: 20px;">НАСТРОЙКИ</div>
+            <div style="font-size:20px; font-weight:bold; margin-bottom:15px">НАСТРОЙКИ</div>
             
-            <div class="setting-row">
-                <span class="setting-label">ГРАФИКА</span>
-                <div class="btn-group">
-                    <div class="btn-opt" onclick="setGraphics('low')" id="gfx-low">НИЗКАЯ</div>
-                    <div class="btn-opt" onclick="setGraphics('med')" id="gfx-med">СРЕДНЯЯ</div>
-                    <div class="btn-opt active" onclick="setGraphics('high')" id="gfx-high">ВЫСОКАЯ</div>
-                </div>
+            <div style="text-align:left; color:#888; font-size:12px">ГРАФИКА</div>
+            <div class="btn-group">
+                <div class="btn-opt" onclick="setGraphics('low')" id="gfx-low">НИЗКАЯ</div>
+                <div class="btn-opt active" onclick="setGraphics('high')" id="gfx-high">ВЫСОКАЯ</div>
             </div>
 
-            <div class="setting-row">
-                <span class="setting-label">УПРАВЛЕНИЕ</span>
-                <div class="btn-group">
-                    <div class="btn-opt active" onclick="setControl('tap')" id="ctrl-tap">ТАПЫ</div>
-                    <div class="btn-opt" onclick="setControl('joy')" id="ctrl-joy">ДЖОЙСТИК</div>
-                </div>
+            <div style="text-align:left; color:#888; font-size:12px">УПРАВЛЕНИЕ</div>
+            <div class="btn-group">
+                <div class="btn-opt active" onclick="setControl('tap')" id="ctrl-tap">ТАПЫ</div>
+                <div class="btn-opt" onclick="setControl('joy')" id="ctrl-joy">ДЖОЙСТИК</div>
             </div>
 
-            <button class="close-btn" onclick="toggleSettings()">ЗАКРЫТЬ</button>
+            <div class="btn-opt" style="background:#c33; border:none; margin-top:10px" onclick="toggleSettings()">ЗАКРЫТЬ</div>
         </div>
     </div>
 
-    <div id="loading">ПОДКЛЮЧЕНИЕ...</div>
+    <div id="loading">ПОДКЛЮЧЕНИЕ К СЕРВЕРУ...</div>
     <canvas id="gameCanvas"></canvas>
+
+    <!-- UI ИГРЫ -->
+    <div id="settingsBtn" onclick="toggleSettings()">⚙️</div>
     
-    <!-- Joystick UI -->
     <div id="joystickZone">
-        <div class="joystick-bg">
-            <div class="joystick-stick" id="joyStick"></div>
-        </div>
+        <div class="joystick-bg"><div class="joystick-stick" id="joyStick"></div></div>
     </div>
 
-    <!-- Game UI -->
-    <div id="settingsBtn" onclick="toggleSettings()">⚙️</div>
     <div id="ui">
         <div class="hero-info">
-            <div style="color:white; font-weight:bold; margin-bottom:4px;" id="playerName">Герой</div>
-            <div class="hero-bar"><div class="hero-bar-fill hp-fill" id="hpBar" style="width: 100%"></div></div>
-            <div class="hero-bar"><div class="hero-bar-fill mp-fill" id="mpBar" style="width: 100%"></div></div>
+            <div class="hero-portrait" id="heroPortrait">?</div>
+            <div class="hero-bar"><div class="hero-bar-fill hp-bar" id="hpBar" style="width: 100%"></div></div>
+            <div class="hero-bar"><div class="hero-bar-fill mp-bar" id="mpBar" style="width: 100%"></div></div>
         </div>
         
         <div class="minimap">
             <div class="minimap-dot" style="background:#4af" id="mmHero"></div>
-            <!-- Other players dots will be added dynamically -->
         </div>
 
         <div class="abilities-panel" id="abilitiesPanel"></div>
-        <div class="cancel-btn" id="cancelBtn">ОТМЕНА</div>
+        <div class="cancel-btn" id="cancelBtn">✕ ОТМЕНА</div>
     </div>
 
     <script>
-        // === SOCKET.IO ===
+        // === ПОДКЛЮЧЕНИЕ ОНЛАЙНА ===
         const socket = io();
         let mySocketId = null;
+        let otherPlayers = {}; 
         let isHost = false;
-        let otherPlayers = {}; // Хранение мешей других игроков
 
-        // === CONFIG & STATE ===
+        // === ДАННЫЕ ГЕРОЕВ (Полные) ===
+        const HEROES = {
+            fire: {
+                name: 'Инферно', icon: '🔥', hp: 550, mp: 450,
+                color: 0xff6633, bodyColor: 0xcc3300, glowColor: 0xff4400,
+                abilities: [
+                    { key:'q', icon:'☄️', mana:60, cd:5, color:0xff6633 },
+                    { key:'w', icon:'🔥', mana:80, cd:8, color:0xff4400 },
+                    { key:'e', icon:'💣', mana:70, cd:6, color:0xff8800 },
+                    { key:'r', icon:'🦅', mana:200, cd:30, color:0xffaa00 }
+                ]
+            },
+            ice: {
+                name: 'Фростия', icon: '❄️', hp: 500, mp: 500,
+                color: 0x44aaff, bodyColor: 0x2266cc, glowColor: 0x66ddff,
+                abilities: [
+                    { key:'q', icon:'🌨️', mana:55, cd:4, color:0x66ddff },
+                    { key:'w', icon:'🧊', mana:100, cd:12, color:0x88eeff },
+                    { key:'e', icon:'🌊', mana:75, cd:7, color:0x44aaff },
+                    { key:'r', icon:'❄️', mana:180, cd:25, color:0xffffff }
+                ]
+            },
+            storm: {
+                name: 'Вольтекс', icon: '⚡', hp: 480, mp: 550,
+                color: 0xaa66ff, bodyColor: 0x6633cc, glowColor: 0xcc88ff,
+                abilities: [
+                    { key:'q', icon:'⚡', mana:50, cd:3, color:0xffff44 },
+                    { key:'w', icon:'🔗', mana:90, cd:9, color:0xaa88ff },
+                    { key:'e', icon:'💨', mana:80, cd:6, color:0x88ffff },
+                    { key:'r', icon:'🌪️', mana:220, cd:35, color:0x9966ff }
+                ]
+            },
+            shadow: {
+                name: 'Умбра', icon: '💀', hp: 600, mp: 400,
+                color: 0x44ff88, bodyColor: 0x226644, glowColor: 0x66ffaa,
+                abilities: [
+                    { key:'q', icon:'👻', mana:65, cd:5, color:0x44ff88 },
+                    { key:'w', icon:'🦇', mana:85, cd:8, color:0x884488 },
+                    { key:'e', icon:'🌀', mana:60, cd:5, color:0x333366 },
+                    { key:'r', icon:'🕳️', mana:200, cd:30, color:0x220044 }
+                ]
+            }
+        };
+
+        // === СОСТОЯНИЕ ИГРЫ ===
         const CONFIG = { MAP_SIZE: 50, HERO_SPEED: 0.12 };
+        let selectedHeroType = null;
+        let heroData = null;
+        
         const state = {
-            hp: 500, maxHp: 500, mp: 500, maxMp: 500,
-            moveTarget: null, selectedAbility: null, isDragging: false,
+            hp: 0, maxHp: 0, mp: 0, maxMp: 0,
+            moveTarget: null, selectedAbility: null,
             cooldowns: { 0:0, 1:0, 2:0, 3:0 },
-            heroType: 'fire',
             joystickActive: false,
-            joystickVector: { x: 0, y: 0 }
+            joystickVector: { x:0, y:0 }
         };
         
-        // Settings State
-        let settings = { graphics: 'high', control: 'tap' };
+        const settings = { graphics: 'high', control: 'tap' };
 
-        // === HERO DATA ===
-        const HEROES = {
-            fire: { color: 0xff6633, hp: 550, abilities: ['☄️','🔥','💣','🦅'] },
-            ice: { color: 0x44aaff, hp: 500, abilities: ['🌨️','🧊','🌊','❄️'] },
-            storm: { color: 0xaa66ff, hp: 480, abilities: ['⚡','🔗','💨','🌪️'] },
-            shadow: { color: 0x44ff88, hp: 600, abilities: ['👻','🦇','🌀','🕳️'] }
-        };
-
-        // === THREE.JS SETUP ===
+        // === THREE.JS ===
         const canvas = document.getElementById('gameCanvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true; // Default high
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a12);
         
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
         camera.position.set(0, 25, 20);
-        camera.lookAt(0, 0, 0);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 1);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(10, 30, 10);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
-        scene.add(dirLight);
+        // Освещение (из красивой версии)
+        scene.add(new THREE.AmbientLight(0x334466, 0.6));
+        const mainLight = new THREE.DirectionalLight(0xffeedd, 1.3);
+        mainLight.position.set(20, 40, 20);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
 
-        // Floor
+        // Пол и Сетка
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(CONFIG.MAP_SIZE, CONFIG.MAP_SIZE),
-            new THREE.MeshStandardMaterial({ color: 0x151520, roughness: 0.8 })
+            new THREE.MeshStandardMaterial({ color: 0x101520, roughness: 0.85 })
         );
         floor.rotation.x = -Math.PI/2;
         floor.receiveShadow = true;
         scene.add(floor);
-        scene.add(new THREE.GridHelper(CONFIG.MAP_SIZE, 25, 0x334455, 0x223344));
+        scene.add(new THREE.GridHelper(CONFIG.MAP_SIZE, CONFIG.MAP_SIZE/2, 0x2a4a6a, 0x1a2a40));
 
-        // === GAME OBJECTS ===
+        // Частицы окружения
+        const particlesGeom = new THREE.BufferGeometry();
+        const pCount = 200;
+        const pPos = new Float32Array(pCount * 3);
+        for(let i=0; i<pCount; i++) {
+            pPos[i*3] = (Math.random()-0.5)*CONFIG.MAP_SIZE;
+            pPos[i*3+1] = Math.random()*10;
+            pPos[i*3+2] = (Math.random()-0.5)*CONFIG.MAP_SIZE;
+        }
+        particlesGeom.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const particles = new THREE.Points(particlesGeom, new THREE.PointsMaterial({
+            color: 0x4488ff, size: 0.15, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending
+        }));
+        scene.add(particles);
+
         let hero = null;
         let moveIndicator = new THREE.Mesh(
-            new THREE.RingGeometry(0.3, 0.4, 16),
-            new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 })
+            new THREE.RingGeometry(0.4, 0.5, 32),
+            new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.8 })
         );
         moveIndicator.rotation.x = -Math.PI/2;
         moveIndicator.visible = false;
         scene.add(moveIndicator);
-        
-        const bots = []; // Bot meshes
-        let botData = []; // Bot logic data
 
-        // === FUNCTIONS ===
-
-        function createHeroMesh(type, isMine = false) {
-            const data = HEROES[type];
+        // === СОЗДАНИЕ ПЕРСОНАЖА (КРАСИВАЯ ВЕРСИЯ) ===
+        function createHeroMesh(type, isMine) {
+            const hData = HEROES[type];
             const group = new THREE.Group();
-            
-            const body = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.4, 0.4, 1.6, 12),
-                new THREE.MeshStandardMaterial({ color: data.color })
-            );
-            body.position.y = 0.8;
-            body.castShadow = true;
-            group.add(body);
-            
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.35),
-                new THREE.MeshStandardMaterial({ color: 0xffccaa })
-            );
-            head.position.y = 1.8;
-            group.add(head);
 
-            if (isMine) {
-                const ring = new THREE.Mesh(
-                    new THREE.RingGeometry(0.8, 0.9, 32),
-                    new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 })
-                );
-                ring.rotation.x = -Math.PI/2;
-                ring.position.y = 0.05;
-                group.add(ring);
-            } else {
-                // Name tag for others
-                // Simplified red ring for enemies/others
-                const ring = new THREE.Mesh(
-                    new THREE.RingGeometry(0.8, 0.9, 32),
-                    new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.5 })
-                );
-                ring.rotation.x = -Math.PI/2;
-                ring.position.y = 0.05;
-                group.add(ring);
-            }
-
-            scene.add(group);
-            return group;
-        }
-
-        function createBotMesh() {
-            const group = new THREE.Group();
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 1.5, 0.8),
-                new THREE.MeshStandardMaterial({ color: 0xcc3333 })
-            );
+            // Тело
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: hData.bodyColor, roughness: 0.3,
+                emissive: hData.color, emissiveIntensity: 0.2
+            });
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.48, 1.5, 16), bodyMat);
             body.position.y = 0.75;
             body.castShadow = true;
             group.add(body);
+
+            // Плащ
+            const cloak = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.1, 16), 
+                new THREE.MeshStandardMaterial({ color: hData.bodyColor, roughness: 0.5 }));
+            cloak.position.y = 0.55;
+            group.add(cloak);
+
+            // Голова
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.32), new THREE.MeshStandardMaterial({ color: 0xffddbb }));
+            head.position.y = 1.8;
+            group.add(head);
+
+            // Капюшон
+            const hood = new THREE.Mesh(new THREE.SphereGeometry(0.42, 20, 20, 0, 6.3, 0, 1.9), 
+                new THREE.MeshStandardMaterial({ color: hData.bodyColor, side: THREE.DoubleSide }));
+            hood.position.y = 1.88;
+            hood.rotation.x = -0.25;
+            group.add(hood);
+
+            // Посох с кристаллом
+            const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 2.8), new THREE.MeshStandardMaterial({ color: 0x5B3A20 }));
+            staff.position.set(0.55, 1.4, 0);
+            staff.rotation.z = 0.12;
+            group.add(staff);
+
+            const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.28), 
+                new THREE.MeshStandardMaterial({ color: hData.glowColor, emissive: hData.color, emissiveIntensity: 2 }));
+            crystal.position.set(0.6, 2.8, 0);
+            group.add(crystal);
+
+            // Кольцо выделения
+            const ringColor = isMine ? 0x00ff00 : 0xff3333;
+            const ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 0.9, 32), 
+                new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.6 }));
+            ring.rotation.x = -Math.PI/2;
+            ring.position.y = 0.05;
+            group.add(ring);
+
             scene.add(group);
             return group;
         }
 
-        // === SETTINGS LOGIC ===
-        function toggleSettings() {
-            const modal = document.getElementById('settingsModal');
-            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        // === УПРАВЛЕНИЕ ===
+        const raycaster = new THREE.Raycaster();
+        
+        function getGroundPoint(x, y) {
+            const mouse = new THREE.Vector2((x/window.innerWidth)*2-1, -(y/window.innerHeight)*2+1);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(floor);
+            return intersects.length > 0 ? intersects[0].point : null;
         }
 
-        function setGraphics(level) {
-            settings.graphics = level;
-            document.querySelectorAll('#settingsModal .btn-group:first-child .btn-opt').forEach(b => b.classList.remove('active'));
-            document.getElementById('gfx-' + level).classList.add('active');
+        // Обработка касаний
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            if(settings.control === 'joy' && state.joystickActive) return;
+            handleInput(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive:false});
+        
+        canvas.addEventListener('mousedown', e => {
+            if(settings.control === 'joy' && state.joystickActive) return;
+            handleInput(e.clientX, e.clientY);
+        });
 
-            if (level === 'high') {
-                renderer.setPixelRatio(window.devicePixelRatio);
-                renderer.shadowMap.enabled = true;
-                dirLight.castShadow = true;
-            } else if (level === 'med') {
-                renderer.setPixelRatio(1);
-                renderer.shadowMap.enabled = false;
-                dirLight.castShadow = false;
-            } else {
-                renderer.setPixelRatio(0.75);
-                renderer.shadowMap.enabled = false;
-                dirLight.castShadow = false;
+        function handleInput(x, y) {
+            const point = getGroundPoint(x, y);
+            if(!point) return;
+
+            if(state.selectedAbility !== null) {
+                castAbility(point);
+            } else if(settings.control === 'tap') {
+                state.moveTarget = point;
+                moveIndicator.position.copy(point);
+                moveIndicator.position.y = 0.1;
+                moveIndicator.visible = true;
+                showTapEffect(point);
             }
-            // Recompile materials (hacky update)
-            scene.traverse(obj => { if(obj.material) obj.material.needsUpdate = true; });
         }
 
-        function setControl(type) {
-            settings.control = type;
-            document.querySelectorAll('#settingsModal .btn-group:last-child .btn-opt').forEach(b => b.classList.remove('active'));
-            document.getElementById('ctrl-' + type).classList.add('active');
-            
-            const joy = document.getElementById('joystickZone');
-            joy.style.display = type === 'joy' ? 'block' : 'none';
-        }
-
-        // === JOYSTICK LOGIC ===
+        // Джойстик
         const joyZone = document.getElementById('joystickZone');
         const stick = document.getElementById('joyStick');
         let joyTouchId = null;
-        let joyCenter = { x: 0, y: 0 };
+        let joyCenter = {x:0, y:0};
 
         joyZone.addEventListener('touchstart', e => {
             e.preventDefault();
-            const touch = e.changedTouches[0];
-            joyTouchId = touch.identifier;
+            const t = e.changedTouches[0];
+            joyTouchId = t.identifier;
             const rect = joyZone.getBoundingClientRect();
-            joyCenter = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
-            updateJoystick(touch.clientX, touch.clientY);
+            joyCenter = {x: rect.left+rect.width/2, y: rect.top+rect.height/2};
             state.joystickActive = true;
-            state.moveTarget = null; // Disable tap move
-        }, {passive: false});
+            state.moveTarget = null;
+            updateJoystick(t.clientX, t.clientY);
+        }, {passive:false});
 
         joyZone.addEventListener('touchmove', e => {
             e.preventDefault();
             for(let i=0; i<e.changedTouches.length; i++) {
                 if(e.changedTouches[i].identifier === joyTouchId) {
                     updateJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
-                    break;
                 }
             }
-        }, {passive: false});
+        }, {passive:false});
 
-        const endJoystick = (e) => {
-             for(let i=0; i<e.changedTouches.length; i++) {
+        const endJoy = (e) => {
+            for(let i=0; i<e.changedTouches.length; i++) {
                 if(e.changedTouches[i].identifier === joyTouchId) {
                     state.joystickActive = false;
                     state.joystickVector = {x:0, y:0};
                     stick.style.transform = `translate(-50%, -50%)`;
                     joyTouchId = null;
-                    break;
                 }
             }
         };
-        joyZone.addEventListener('touchend', endJoystick);
-        joyZone.addEventListener('touchcancel', endJoystick);
+        joyZone.addEventListener('touchend', endJoy);
 
         function updateJoystick(x, y) {
             const dx = x - joyCenter.x;
             const dy = y - joyCenter.y;
-            const distance = Math.min(Math.sqrt(dx*dx + dy*dy), 35); // 35px radius limit
+            const dist = Math.min(Math.sqrt(dx*dx+dy*dy), 35);
             const angle = Math.atan2(dy, dx);
-            
-            const moveX = Math.cos(angle) * distance;
-            const moveY = Math.sin(angle) * distance;
-            
-            stick.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
-            
-            // Normalize vector 0-1
-            state.joystickVector = {
-                x: moveX / 35,
-                y: moveY / 35
-            };
+            const mx = Math.cos(angle)*dist;
+            const my = Math.sin(angle)*dist;
+            stick.style.transform = `translate(calc(-50% + ${mx}px), calc(-50% + ${my}px))`;
+            state.joystickVector = { x: mx/35, y: my/35 };
         }
 
-        // === GAME INIT ===
+        // === ИГРОВАЯ ЛОГИКА ===
         function startGame(type) {
-            state.heroType = type;
-            state.maxHp = HEROES[type].hp;
-            state.hp = state.maxHp;
-            
+            selectedHeroType = type;
+            heroData = HEROES[type];
+            state.maxHp = heroData.hp;
+            state.hp = heroData.hp;
+            state.maxMp = heroData.mp;
+            state.mp = heroData.mp;
+
             document.getElementById('heroSelect').style.display = 'none';
             document.getElementById('loading').style.display = 'flex';
-            
-            // Connect to server
-            socket.emit('joinGame', { 
+            document.getElementById('heroPortrait').textContent = heroData.icon;
+
+            // ПОДКЛЮЧЕНИЕ К СЕРВЕРУ
+            socket.emit('joinGame', {
                 heroType: type,
                 hp: state.hp,
                 maxHp: state.maxHp
             });
         }
 
-        // Socket Events
-        socket.on('setHost', (val) => {
-            isHost = val;
-            if(isHost && botData.length === 0) {
-                // Init Bots if host
-                for(let i=0; i<3; i++) {
-                    botData.push({ x: (Math.random()-0.5)*30, z: (Math.random()-0.5)*30, hp: 500 });
-                }
-            }
-        });
+        // Ответы от сервера
+        socket.on('setHost', (val) => { isHost = val; });
 
-        socket.on('currentPlayers', (serverPlayers) => {
+        socket.on('currentPlayers', (players) => {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('ui').style.display = 'block';
             document.getElementById('settingsBtn').style.display = 'flex';
             
             mySocketId = socket.id;
             
-            // Create my hero
-            hero = createHeroMesh(state.heroType, true);
+            // Создаем себя
+            hero = createHeroMesh(selectedHeroType, true);
             
-            // Create others
-            Object.values(serverPlayers).forEach(p => {
+            // Создаем других
+            Object.values(players).forEach(p => {
                 if(p.id !== mySocketId) {
                     const other = createHeroMesh(p.heroType, false);
                     other.position.set(p.x, 0, p.z);
@@ -451,9 +482,6 @@
                 }
             });
 
-            // Create Bots visuals
-            for(let i=0; i<3; i++) bots.push(createBotMesh());
-            
             createAbilitiesUI();
             animate();
         });
@@ -467,9 +495,10 @@
         socket.on('playerMoved', (p) => {
             if(otherPlayers[p.id]) {
                 const mesh = otherPlayers[p.id];
-                // Simple interpolation could go here, direct set for now
                 mesh.position.set(p.x, 0, p.z);
                 mesh.rotation.y = p.rot;
+                // Анимация ходьбы у других (упрощенно - наклон)
+                mesh.rotation.z = Math.sin(Date.now()*0.01)*0.05;
             }
         });
 
@@ -480,193 +509,161 @@
             }
         });
 
-        socket.on('botsSync', (data) => {
-            if(!isHost) {
-                botData = data;
-                // Update visuals
-                botData.forEach((b, i) => {
-                    if(bots[i]) {
-                        bots[i].position.set(b.x, 0, b.z);
-                        bots[i].visible = b.hp > 0;
-                    }
-                });
-            }
-        });
-
         socket.on('remoteAbility', (data) => {
-            // Visual effect for others abilities
-            const caster = otherPlayers[data.id];
-            if(caster) {
-                showDamage(data.target, "✨", "ability"); // Simplified effect
-            }
+            // Эффект от других игроков
+            createExplosion(data.target, 0xffffff); 
         });
 
-        // === CONTROLS (TAP) ===
-        const raycaster = new THREE.Raycaster();
-        
-        canvas.addEventListener('mousedown', onPointerDown);
-        canvas.addEventListener('touchstart', (e) => {
-            if(e.target === canvas) onPointerDown(e.touches[0]);
-        }, {passive: false});
-
-        function onPointerDown(e) {
-            if(settings.control === 'joy' && state.joystickActive) return;
-            if(state.selectedAbility !== null) {
-                // Cast logic
-                const point = getGroundPoint(e.clientX, e.clientY);
-                if(point) castAbility(point);
-            } else if (settings.control === 'tap') {
-                // Move Logic
-                const point = getGroundPoint(e.clientX, e.clientY);
-                if(point) {
-                    state.moveTarget = point;
-                    moveIndicator.position.copy(point);
-                    moveIndicator.position.y = 0.1;
-                    moveIndicator.visible = true;
-                }
-            }
-        }
-
-        function getGroundPoint(x, y) {
-            const mouse = new THREE.Vector2(
-                (x / window.innerWidth) * 2 - 1,
-                -(y / window.innerHeight) * 2 + 1
-            );
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObject(floor);
-            return intersects.length > 0 ? intersects[0].point : null;
-        }
-
-        // === ABILITIES ===
+        // === СПОСОБНОСТИ ===
         function createAbilitiesUI() {
             const panel = document.getElementById('abilitiesPanel');
-            const abils = HEROES[state.heroType].abilities;
             panel.innerHTML = '';
-            abils.forEach((icon, i) => {
-                const btn = document.createElement('div');
-                btn.className = 'ability';
-                btn.innerHTML = `${icon}<div class="ability-cd" id="cd${i}"></div>`;
-                btn.onclick = (e) => { e.stopPropagation(); selectAbility(i); };
-                panel.appendChild(btn);
+            heroData.abilities.forEach((ab, i) => {
+                const el = document.createElement('div');
+                el.className = 'ability';
+                el.innerHTML = `${ab.icon}<div class="ability-cd" id="cd${i}"></div>`;
+                el.onclick = (e) => { e.stopPropagation(); selectAbility(i); };
+                panel.appendChild(el);
             });
-            
-            document.getElementById('cancelBtn').onclick = () => {
-                state.selectedAbility = null;
-                document.querySelectorAll('.ability').forEach(b => b.classList.remove('selected'));
-                document.getElementById('cancelBtn').classList.remove('active');
-            };
+            document.getElementById('cancelBtn').onclick = cancelAbility;
         }
 
-        function selectAbility(index) {
-            if(state.cooldowns[index] > 0) return;
-            state.selectedAbility = index;
-            document.querySelectorAll('.ability').forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll('.ability')[index].classList.add('selected');
+        function selectAbility(idx) {
+            if(state.cooldowns[idx] > 0 || state.mp < heroData.abilities[idx].mana) return;
+            state.selectedAbility = idx;
+            document.querySelectorAll('.ability').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.ability')[idx].classList.add('selected');
             document.getElementById('cancelBtn').classList.add('active');
         }
 
-        function castAbility(targetPos) {
-            const idx = state.selectedAbility;
-            state.cooldowns[idx] = 5; // Fixed 5s CD for simplicity
-            
-            // Visuals
-            showDamage(targetPos, "💥", "ability");
-            
-            // Network
-            socket.emit('abilityUsed', { abilityIndex: idx, target: targetPos });
-            
-            // Logic (Host handles bot damage actually, but for simplicity client checks distance)
-            // Ideally server validates, but we do client-side trust for this demo
-            if(isHost) {
-                botData.forEach(b => {
-                    const dx = b.x - targetPos.x;
-                    const dz = b.z - targetPos.z;
-                    if(Math.sqrt(dx*dx + dz*dz) < 4) { // Radius 4
-                        b.hp -= 100;
-                    }
-                });
-                socket.emit('updateBots', botData);
-            }
-
-            // Reset
+        function cancelAbility() {
             state.selectedAbility = null;
-            document.querySelectorAll('.ability').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.ability').forEach(el => el.classList.remove('selected'));
             document.getElementById('cancelBtn').classList.remove('active');
         }
 
-        function showDamage(pos, text, type) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            div.style.position = 'absolute';
-            div.style.color = type === 'ability' ? '#f0f' : '#fff';
-            div.style.fontWeight = 'bold';
-            div.style.fontSize = '20px';
-            div.style.textShadow = '0 0 5px #000';
+        function castAbility(target) {
+            const idx = state.selectedAbility;
+            const ability = heroData.abilities[idx];
             
-            // Project 3D to 2D
-            const v = pos.clone();
-            v.y += 2;
-            v.project(camera);
-            const x = (v.x * .5 + .5) * window.innerWidth;
-            const y = (-(v.y * .5) + .5) * window.innerHeight;
+            state.mp -= ability.mana;
+            state.cooldowns[idx] = ability.cd;
             
-            div.style.left = x + 'px';
-            div.style.top = y + 'px';
-            div.style.transition = 'top 1s, opacity 1s';
-            document.body.appendChild(div);
+            // Визуальный эффект
+            createExplosion(target, ability.color);
+            socket.emit('abilityUsed', { abilityIndex: idx, target: target });
             
-            setTimeout(() => {
-                div.style.top = (y - 50) + 'px';
-                div.style.opacity = 0;
-            }, 50);
-            setTimeout(() => div.remove(), 1000);
+            cancelAbility();
         }
 
-        // === LOOP ===
+        function createExplosion(pos, color) {
+            // Простое создание частиц
+            for(let i=0; i<10; i++) {
+                const m = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({color: color}));
+                m.position.copy(pos);
+                m.position.y = 1;
+                // Простая анимация "выстрела" вверх
+                scene.add(m);
+                setTimeout(()=>scene.remove(m), 500);
+            }
+            // Всплывающий текст (для теста)
+            showDamage(pos, "БАМ!", color);
+        }
+
+        function showDamage(pos, text, color) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.style.position = 'fixed';
+            div.style.color = '#'+color.toString(16);
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '0 0 5px #000';
+            div.style.pointerEvents = 'none';
+            
+            const v = pos.clone(); v.y += 2; v.project(camera);
+            div.style.left = ((v.x+1)/2*window.innerWidth) + 'px';
+            div.style.top = ((-v.y+1)/2*window.innerHeight) + 'px';
+            
+            document.body.appendChild(div);
+            setTimeout(()=>div.remove(), 1000);
+        }
+
+        function showTapEffect(pos) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.width = '30px'; div.style.height = '30px';
+            div.style.border = '2px solid #4af'; div.style.borderRadius = '50%';
+            
+            const v = pos.clone(); v.project(camera);
+            div.style.left = ((v.x+1)/2*window.innerWidth) + 'px';
+            div.style.top = ((-v.y+1)/2*window.innerHeight) + 'px';
+            div.style.transform = 'translate(-50%, -50%)';
+            
+            document.body.appendChild(div);
+            setTimeout(()=>div.remove(), 300);
+        }
+
+        // === НАСТРОЙКИ ===
+        function toggleSettings() {
+            const el = document.getElementById('settingsModal');
+            el.style.display = el.style.display==='flex'?'none':'flex';
+        }
+        function setGraphics(lvl) {
+            document.getElementById('gfx-low').classList.toggle('active', lvl==='low');
+            document.getElementById('gfx-high').classList.toggle('active', lvl==='high');
+            if(lvl==='high') { renderer.setPixelRatio(window.devicePixelRatio); mainLight.castShadow=true; }
+            else { renderer.setPixelRatio(0.8); mainLight.castShadow=false; }
+        }
+        function setControl(type) {
+            settings.control = type;
+            document.getElementById('ctrl-tap').classList.toggle('active', type==='tap');
+            document.getElementById('ctrl-joy').classList.toggle('active', type==='joy');
+            document.getElementById('joystickZone').style.display = type==='joy'?'block':'none';
+        }
+
+        // === ГЛАВНЫЙ ЦИКЛ ===
         let lastTime = 0;
         let updateTimer = 0;
 
         function animate(time) {
             requestAnimationFrame(animate);
-            const delta = (time - lastTime) / 1000 || 0;
+            const delta = (time - lastTime)/1000 || 0;
             lastTime = time;
 
             if(!hero) return;
 
-            // Movement Logic
+            // Движение
             let moved = false;
             
-            if (settings.control === 'joy' && state.joystickActive) {
-                // Joystick Move
-                const speed = CONFIG.HERO_SPEED * 3; // Boost for joy
-                // Rotate vector based on camera? Simplified: Joy Up = World -Z
+            if(settings.control === 'joy' && state.joystickActive) {
+                const speed = CONFIG.HERO_SPEED * 3; 
                 hero.position.x += state.joystickVector.x * speed;
-                hero.position.z += state.joystickVector.y * speed; // Y on screen is Z in 3D
-                hero.lookAt(hero.position.x + state.joystickVector.x, 0.8, hero.position.z + state.joystickVector.y);
+                hero.position.z += state.joystickVector.y * speed;
+                hero.lookAt(hero.position.x + state.joystickVector.x, 0.75, hero.position.z + state.joystickVector.y);
                 moved = true;
                 moveIndicator.visible = false;
-            } 
-            else if (settings.control === 'tap' && state.moveTarget) {
-                // Tap Move
+            } else if(settings.control === 'tap' && state.moveTarget) {
                 const dir = new THREE.Vector3().subVectors(state.moveTarget, hero.position);
                 dir.y = 0;
                 if(dir.length() > 0.2) {
                     dir.normalize();
                     hero.position.add(dir.multiplyScalar(CONFIG.HERO_SPEED));
-                    hero.lookAt(state.moveTarget.x, 0.8, state.moveTarget.z);
+                    hero.lookAt(state.moveTarget.x, 0.75, state.moveTarget.z);
                     moved = true;
                 } else {
                     state.moveTarget = null;
                     moveIndicator.visible = false;
                 }
             }
-
-            // Camera Follow
-            camera.position.x = hero.position.x;
-            camera.position.z = hero.position.z + 20;
+            
+            // Камера следит за героем
+            camera.position.x += (hero.position.x - camera.position.x) * 0.1;
+            camera.position.z += (hero.position.z + 20 - camera.position.z) * 0.1;
             camera.lookAt(hero.position.x, 0, hero.position.z);
 
-            // Network Update (throttle)
+            // Реген маны
+            if(state.mp < state.maxMp) state.mp += delta * 5;
+
+            // Отправка данных на сервер (не слишком часто)
             updateTimer += delta;
             if(updateTimer > 0.05 && moved) {
                 socket.emit('playerUpdate', {
@@ -678,57 +675,24 @@
                 updateTimer = 0;
             }
 
-            // Bots Logic (Host only)
-            if(isHost) {
-                let botsChanged = false;
-                botData.forEach((b, i) => {
-                    if(b.hp > 0) {
-                        // Simple AI: Move towards hero if close
-                        const dx = hero.position.x - b.x;
-                        const dz = hero.position.z - b.z;
-                        const dist = Math.sqrt(dx*dx + dz*dz);
-                        
-                        if(dist < 10 && dist > 1.5) {
-                            b.x += (dx/dist) * 0.05;
-                            b.z += (dz/dist) * 0.05;
-                            botsChanged = true;
-                        }
-                    }
-                });
-                if(botsChanged) socket.emit('updateBots', botData);
-                
-                // Update Local Bot Meshes immediately
-                botData.forEach((b, i) => {
-                   if(bots[i]) {
-                       bots[i].position.set(b.x, 0, b.z);
-                       bots[i].visible = b.hp > 0;
-                   } 
-                });
-            }
-
-            // Cooldowns
-            for(let k in state.cooldowns) {
-                if(state.cooldowns[k] > 0) {
-                    state.cooldowns[k] -= delta;
-                    const el = document.getElementById('cd'+k);
-                    if(el) {
-                        el.textContent = Math.ceil(state.cooldowns[k]);
-                        el.classList.add('active');
-                    }
-                    if(state.cooldowns[k] <= 0) {
-                        if(el) el.classList.remove('active');
-                    }
-                }
-            }
-
-            // Update UI Bars
+            // Обновление UI
             document.getElementById('hpBar').style.width = (state.hp/state.maxHp*100)+'%';
+            document.getElementById('mpBar').style.width = (state.mp/state.maxMp*100)+'%';
             
-            // Update MiniMap
-            const mapScale = 1; 
-            const mmHero = document.getElementById('mmHero');
-            mmHero.style.left = (50 + hero.position.x * mapScale) + 'px';
-            mmHero.style.top = (50 - hero.position.z * mapScale) + 'px';
+            // Кулдауны
+            heroData.abilities.forEach((ab, i) => {
+                if(state.cooldowns[i] > 0) {
+                    state.cooldowns[i] -= delta;
+                    document.getElementById('cd'+i).textContent = Math.ceil(state.cooldowns[i]);
+                    document.getElementById('cd'+i).classList.add('active');
+                } else {
+                    document.getElementById('cd'+i).classList.remove('active');
+                }
+            });
+
+            // Миникарта
+            document.getElementById('mmHero').style.left = (50 + hero.position.x)+'px';
+            document.getElementById('mmHero').style.top = (50 - hero.position.z)+'px';
 
             renderer.render(scene, camera);
         }
