@@ -1,7 +1,7 @@
 {
-  "name": "love-messenger",
+  "name": "dota-mobile-3d",
   "version": "1.0.0",
-  "description": "Мессенджер для двоих",
+  "description": "Dota Mobile with Multiplayer",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
