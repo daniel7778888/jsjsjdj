@@ -5,7 +5,15 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
-app.use(express.static('public'));
+// --- ВАЖНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ---
+// Говорим серверу искать файлы в текущей папке (в корне), а не в 'public'
+app.use(express.static(__dirname));
+
+// При заходе на главную страницу отдаем index.html
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+// ------------------------------
 
 let players = {};
 let hostId = null;
@@ -56,7 +64,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Игрок использовал способность (визуальный эффект для других)
+    // Игрок использовал способность
     socket.on('abilityUsed', (data) => {
         socket.broadcast.emit('remoteAbility', {
             id: socket.id,
