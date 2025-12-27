@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -194,74 +195,99 @@
         // --- AUTHENTIC VINYL COMPONENT ---
         const AuthenticVinyl = () => {
           const [isPlaying, setIsPlaying] = useState(false);
-          const [hovered, setHovered] = useState(false);
+          const audioRef = useRef(null);
+          const fadeInterval = useRef(null);
+
+          // ПУТЬ К ВАШЕЙ ПЕСНЕ
+          const musicSrc = "Пример (1).mp3"; // Укажите здесь название своего файла
+
+          const togglePlay = () => {
+            const audio = audioRef.current;
+            if (!audio) return;
+
+            clearInterval(fadeInterval.current);
+
+            if (!isPlaying) {
+              // Включаем (Fade In)
+              audio.play();
+              setIsPlaying(true);
+              let vol = 0;
+              audio.volume = vol;
+              fadeInterval.current = setInterval(() => {
+                vol += 0.05;
+                if (vol >= 1) {
+                  audio.volume = 1;
+                  clearInterval(fadeInterval.current);
+                } else {
+                  audio.volume = Math.min(vol, 1);
+                }
+              }, 50);
+            } else {
+              // Выключаем (Fade Out)
+              let vol = audio.volume;
+              fadeInterval.current = setInterval(() => {
+                vol -= 0.05;
+                if (vol <= 0) {
+                  audio.volume = 0;
+                  audio.pause();
+                  setIsPlaying(false);
+                  clearInterval(fadeInterval.current);
+                } else {
+                  audio.volume = Math.max(vol, 0);
+                }
+              }, 50);
+            }
+          };
 
           return (
             <div className="relative w-full max-w-[320px] md:max-w-[400px] aspect-square mx-auto">
-               <div 
-                  className="relative group cursor-pointer w-full h-full"
-                  onMouseEnter={() => setHovered(true)}
-                  onMouseLeave={() => setHovered(false)}
-                  onClick={() => setIsPlaying(!isPlaying)}
-               >
-                   {/* Glow Behind */}
-                   <div className={`absolute inset-0 bg-gold-600/30 rounded-full blur-[60px] md:blur-[100px] transition-opacity duration-700 ${isPlaying ? 'opacity-80' : 'opacity-20'}`}></div>
+               <audio ref={audioRef} src={musicSrc} loop />
 
-                   {/* Album Cover Background (The sleeve) */}
-                   <div className={`absolute top-0 left-0 w-full h-full bg-[#1c1917] rounded-xl shadow-2xl transition-transform duration-700 z-10 border border-white/10 flex items-center justify-center ${isPlaying ? 'translate-x-[-10%] md:translate-x-[-40px] rotate-[-5deg] scale-95' : 'translate-x-0 rotate-0 scale-100'}`}>
+               <div className="relative group cursor-pointer w-full h-full" onClick={togglePlay}>
+                   {/* Glow Behind */}
+                   <div className={`absolute inset-0 bg-gold-600/30 rounded-full blur-[60px] md:blur-[100px] transition-opacity duration-1000 ${isPlaying ? 'opacity-80' : 'opacity-20'}`}></div>
+
+                   {/* Sleeve (Конверт) */}
+                   <div className={`absolute top-0 left-0 w-full h-full bg-[#1c1917] rounded-xl shadow-2xl transition-transform duration-1000 z-10 border border-white/10 flex items-center justify-center ${isPlaying ? 'translate-x-[-10%] md:translate-x-[-40px] rotate-[-5deg] scale-95' : 'translate-x-0 rotate-0 scale-100'}`}>
                       <div className="w-[90%] h-[90%] border border-white/5 bg-[#12100e] relative overflow-hidden rounded-lg">
-                          {/* Stylized Cover Art */}
                           <div className="absolute inset-0 opacity-50 mix-blend-overlay bg-[url('https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600')] bg-cover bg-center grayscale contrast-125"></div>
                           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
                               <div className="w-16 h-16 rounded-full border-2 border-stone-600 flex items-center justify-center mb-4 bg-black/50 backdrop-blur-sm">
-                                 <Icon path={Icons.Music} className="text-gold-500" />
+                                 <Icon path={Icons.Music} className={isPlaying ? "text-gold-500 animate-pulse" : "text-stone-600"} />
                               </div>
-                              <h3 className="font-serif font-bold text-2xl md:text-3xl text-stone-200">ОЖИВИ</h3>
-                              <p className="text-gold-500 text-xs tracking-[0.3em] uppercase mt-2">Коллекция памяти</p>
+                              <h3 className="font-serif font-bold text-2xl md:text-3xl text-stone-200 uppercase tracking-tighter">ОЖИВИ</h3>
+                              <p className="text-gold-500 text-[10px] tracking-[0.3em] uppercase mt-2">{isPlaying ? "Звучит магия" : "Нажмите, чтобы оживить"}</p>
                           </div>
                       </div>
                    </div>
 
-                   {/* The Vinyl Disc */}
-                   <div className={`absolute top-[2%] left-[2%] w-[96%] h-[96%] rounded-full bg-[#0a0a0a] border-[4px] border-[#1a1a1a] shadow-2xl z-20 transition-transform duration-700 ease-in-out ${isPlaying ? 'translate-x-[20%] md:translate-x-[60px] rotate-12' : 'translate-x-2 rotate-0'}`}>
-                      {/* Shine Reflection */}
+                   {/* Disc (Пластинка) */}
+                   <div className={`absolute top-[2%] left-[2%] w-[96%] h-[96%] rounded-full bg-[#0a0a0a] border-[4px] border-[#1a1a1a] shadow-2xl z-20 transition-transform duration-1000 ease-in-out ${isPlaying ? 'translate-x-[20%] md:translate-x-[60px] rotate-12' : 'translate-x-2 rotate-0'}`}>
                       <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent pointer-events-none z-30"></div>
-                      
                       <div className={`w-full h-full rounded-full flex items-center justify-center ${isPlaying ? 'animate-[spin_4s_linear_infinite]' : ''}`}>
-                          {/* Grooves */}
                           {[1,2,3,4,5,6].map(i => (
                              <div key={i} className="absolute rounded-full border border-stone-800/40" style={{ inset: `${i * 8}%` }}></div>
                           ))}
-                          
-                          {/* Label */}
                           <div className="w-[35%] h-[35%] bg-gradient-to-br from-amber-700 to-red-900 rounded-full flex items-center justify-center relative shadow-inner z-40 border border-white/10">
                              <div className="w-2 h-2 bg-black rounded-full"></div>
-                             <span className="absolute bottom-3 text-[6px] md:text-[8px] font-black uppercase tracking-widest text-amber-200/80">Stereo</span>
                           </div>
                       </div>
                    </div>
 
-                   {/* Tonearm (Needle) - The Classic Element */}
-                   <div className={`absolute top-[-20px] right-[-20px] w-8 h-32 md:w-10 md:h-40 z-50 transition-transform duration-700 origin-top shadow-xl ${isPlaying ? 'rotate-[30deg] translate-x-[20%] md:translate-x-[60px]' : 'rotate-0 translate-x-0'}`}>
-                      <div className="w-2 h-full bg-stone-400 mx-auto rounded-full relative bg-gradient-to-r from-stone-300 to-stone-500">
-                          {/* Pivot */}
+                   {/* Needle (Игла) */}
+                   <div className={`absolute top-[-20px] right-[-20px] w-8 h-32 md:w-10 md:h-40 z-50 transition-transform duration-1000 origin-top shadow-xl ${isPlaying ? 'rotate-[30deg] translate-x-[20%] md:translate-x-[60px]' : 'rotate-0 translate-x-0'}`}>
+                      <div className="w-1.5 h-full bg-stone-400 mx-auto rounded-full relative bg-gradient-to-r from-stone-300 to-stone-500">
                           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-stone-800 border-2 border-stone-500 shadow-lg"></div>
-                          {/* Head */}
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-8 bg-stone-800 rounded-sm border border-stone-600"></div>
-                      </div>
-                   </div>
-
-                   {/* Play Button Overlay (Hidden when playing) */}
-                   <div className={`absolute top-1/2 left-1/2 transform translate-x-[10%] md:translate-x-[30px] -translate-y-1/2 z-50 transition-all duration-300 ${isPlaying ? 'opacity-0 scale-50 pointer-events-none' : 'opacity-100 scale-100'}`}>
-                      <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-[0_0_30px_rgba(255,255,255,0.2)] animate-pulse-glow hover:scale-110 transition-transform">
-                         <Icon path={Icons.Play} className="fill-white text-white ml-1 w-8 h-8" />
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-7 bg-stone-800 rounded-sm border border-stone-600"></div>
                       </div>
                    </div>
                </div>
             </div>
           );
         };
+        
 
+          
         // --- 3D TILT SERVICE CARD ---
         const TiltCard = ({ title, desc, icon }) => {
             const [rotate, setRotate] = useState({ x: 0, y: 0 });
