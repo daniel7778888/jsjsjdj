@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ОЖИВИ | Магия воспоминаний</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700;900&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #FFD700; /* Золото */
+            --accent: #ff6b6b; /* Акцент для эмоций */
+            --bg: #050505;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- Анимированный фон (Частицы) --- */
+        .particles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; pointer-events: none;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+        .particle {
+            position: absolute; width: 3px; height: 3px; background: var(--primary);
+            border-radius: 50%; opacity: 0; animation: floatUp 10s infinite linear;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            50% { opacity: 0.7; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* --- UI Компоненты --- */
+        .btn {
+            padding: 15px 40px; border-radius: 50px; font-weight: 700; text-transform: uppercase;
+            text-decoration: none; transition: 0.4s; position: relative; overflow: hidden;
+            display: inline-block; letter-spacing: 1px;
+        }
+        .btn-gold {
+            background: linear-gradient(45deg, var(--primary), #FFA500);
+            color: black; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        .btn-gold:hover { transform: translateY(-3px); box-shadow: 0 0 40px rgba(255, 215, 0, 0.7); }
+        
+        .btn-outline {
+            border: 2px solid var(--primary); color: var(--primary); margin-left: 10px;
+        }
+        .btn-outline:hover { background: var(--primary); color: black; }
+
+        section { padding: 80px 20px; position: relative; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        h2 { font-size: 2.5rem; text-align: center; margin-bottom: 50px; font-family: 'Playfair Display', serif; }
+        h2 span { color: var(--primary); }
+
+        /* --- Header --- */
+        header {
+            position: fixed; top: 0; width: 100%; padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+        .logo { font-size: 24px; font-weight: 900; letter-spacing: 3px; color: white; }
+        .logo span { color: var(--primary); }
+        
+        /* --- Hero --- */
+        .hero {
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            text-align: center; flex-direction: column;
+            background: url('https://images.unsplash.com/photo-1544377067-e9a66d03d360?q=80&w=2574&auto=format&fit=crop') no-repeat center center/cover;
+        }
+        .hero-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.3), #050505);
+        }
+        .hero-content { z-index: 2; opacity: 0; animation: fadeIn 2s forwards; }
+        .hero h1 { font-size: 4rem; line-height: 1.1; margin-bottom: 20px; font-family: 'Playfair Display', serif; text-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* --- Slider Before/After (Magic Demo) --- */
+        .comparison-section { text-align: center; }
+        .slider-container {
+            position: relative; width: 100%; max-width: 700px; height: 450px;
+            margin: 0 auto; overflow: hidden; border-radius: 20px; border: 2px solid var(--primary);
+            box-shadow: 0 0 30px rgba(255,215,0,0.15);
+        }
+        .img-comp-img { position: absolute; width: 100%; height: 100%; overflow: hidden; }
+        .img-comp-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+        .slider-handle {
+            position: absolute; z-index: 9; cursor: col-resize; width: 40px; height: 40px;
+            background: var(--primary); border-radius: 50%; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .slider-handle i { color: black; }
+
+        /* --- Services Grid --- */
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .service-card {
+            background: var(--glass); border: 1px solid var(--border); padding: 40px;
+            border-radius: 20px; transition: 0.4s; position: relative; overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .service-card:hover { transform: translateY(-10px); border-color: var(--primary); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .service-icon { font-size: 50px; color: var(--primary); margin-bottom: 20px; }
+        .service-price { display: inline-block; background: var(--primary); color: black; padding: 5px 15px; border-radius: 15px; font-weight: bold; margin-top: 15px; }
+
+        /* --- Form --- */
+        .order-form {
+            max-width: 600px; margin: 0 auto; background: #111; padding: 40px;
+            border-radius: 20px; border: 1px solid var(--border);
+            box-shadow: 0 0 50px rgba(255,215,0,0.05);
+        }
+        .form-group { position: relative; margin-bottom: 25px; }
+        .form-control {
+            width: 100%; background: transparent; border: none; border-bottom: 2px solid #333;
+            padding: 15px 0; color: white; font-size: 18px; transition: 0.3s;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+        .form-label {
+            position: absolute; left: 0; top: 15px; color: #888; transition: 0.3s; pointer-events: none;
+        }
+        .form-control:focus ~ .form-label, .form-control:valid ~ .form-label {
+            top: -10px; font-size: 12px; color: var(--primary);
+        }
+        
+        select.form-control { color: #fff; }
+        select option { background: #111; }
+
+        /* --- Footer --- */
+        footer {
+            background: #000; padding: 50px 20px; text-align: center; border-top: 1px solid #222;
+        }
+        .social-links a {
+            display: inline-block; width: 50px; height: 50px; line-height: 50px;
+            background: #222; border-radius: 50%; color: white; margin: 0 10px; transition: 0.3s; font-size: 20px;
+        }
+        .social-links a:hover { background: var(--primary); color: black; transform: scale(1.1); }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .btn { width: 100%; margin: 10px 0; }
+            .slider-container { height: 300px; }
+        }
+        
+        /* Floating Telegram Button */
+        .fab-tg {
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            background: #0088cc; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 30px; box-shadow: 0 5px 20px rgba(0,136,204,0.5);
+            z-index: 999; animation: pulse 2s infinite; text-decoration: none;
+        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,136,204, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(0,136,204, 0); } 100% { box-shadow: 0 0 0 0 rgba(0,136,204, 0); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="particles" id="particles"></div>
+
+    <a href="https://t.me/ozhiviBY" class="fab-tg" target="_blank"><i class="fab fa-telegram-plane"></i></a>
+
+    <header>
+        <div class="logo">ОЖИВИ<span>.</span></div>
+        <nav>
+            <a href="https://t.me/ozhiviBY" target="_blank" style="color: white; text-decoration: none; font-weight: bold;">
+                <i class="fab fa-telegram"></i> Канал
+            </a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content container">
+            <h1>ИСТОРИЯ<br><span style="color: var(--primary);">ОЖИВАЕТ</span> ЗДЕСЬ</h1>
+            <p style="font-size: 1.2rem; color: #ccc; margin-bottom: 40px; max-width: 600px;">
+                Превращаем старые фото в видео, раскрашиваем воспоминания и пишем музыку вашей души.
+            </p>
+            <div>
+                <a href="#order" class="btn btn-gold">Заказать Чудо</a>
+                <a href="https://t.me/ozhiviBY" target="_blank" class="btn btn-outline">В Группу</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="comparison-section">
+        <div class="container">
+            <h2>Магия <span>Цвета</span></h2>
+            <p style="margin-bottom: 30px; color: #aaa;">Потяни ползунок, чтобы раскрасить историю</p>
+            
+            <div class="slider-container" id="slider">
+                <div class="img-comp-img img-color">
+                    <img src="https://images.unsplash.com/photo-1551024601-564d6e68e211?q=80&w=2070&auto=format&fit=crop" alt="Color">
+                </div>
+                <div class="img-comp-img img-bw" id="overlayImg" style="width: 50%;">
+                    <img src="https://images.unsplash.com/photo-1551024601-564d6e68e211?q=80&w=2070&auto=format&fit=crop&sat=-100" alt="BW">
+                </div>
+                <div class="slider-handle" id="sliderHandle"><i class="fas fa-arrows-alt-h"></i></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="services">
+        <div class="container">
+            <h2>Наши <span>Услуги</span></h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-film"></i></div>
+                    <h3>Оживление Фото</h3>
+                    <p>Ваши близкие на фото начнут двигаться, улыбаться и говорить. Полная магия нейросетей.</p>
+                    <span class="service-price">20 BYN</span>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-music"></i></div>
+                    <h3>Песня на Заказ</h3>
+                    <p>Напишем уникальный трек (поп, рок, шансон) на ваши стихи или историю.</p>
+                    <span class="service-price">15 BYN</span>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon"><i class="fas fa-palette"></i></div>
+                    <h3>Колоризация</h3>
+                    <p>Профессиональное раскрашивание черно-белых снимков и удаление дефектов.</p>
+                    <span class="service-price">10 BYN</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="order">
+        <div class="container">
+            <h2>Оформить <span>Заказ</span></h2>
+            <div class="order-form">
+                <form id="tgForm">
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="name" required>
+                        <label class="form-label">Ваше Имя</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-control" name="phone" required>
+                        <label class="form-label">Телефон / Telegram</label>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control" name="service" style="padding-top: 10px;">
+                            <option value="Оживление Фото">Оживление Фото</option>
+                            <option value="Песня на Заказ">Песня на Заказ</option>
+                            <option value="Колоризация">Колоризация</option>
+                            <option value="Комплекс">Всё вместе</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <textarea class="form-control" name="comment" rows="3"></textarea>
+                        <label class="form-label">Комментарий (пожелания)</label>
+                    </div>
+                    <button type="submit" class="btn btn-gold" style="width: 100%; border: none; cursor: pointer;">Отправить Заявку</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 20px;">ОЖИВИ</div>
+        <div class="social-links">
+            <a href="https://t.me/ozhiviBY" target="_blank"><i class="fab fa-telegram-plane"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-tiktok"></i></a>
+        </div>
+        <p style="margin-top: 20px; color: #555; font-size: 12px;">&copy; 2024 OZHIVI. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // --- 1. Генерация частиц фона ---
+        const particlesContainer = document.getElementById('particles');
+        for(let i=0; i<30; i++) {
+            let p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            p.style.animationDelay = Math.random() * 5 + 's';
+            particlesContainer.appendChild(p);
+        }
+
+        // --- 2. Логика Слайдера До/После ---
+        const slider = document.getElementById('slider');
+        const overlay = document.getElementById('overlayImg');
+        const handle = document.getElementById('sliderHandle');
+        let isDown = false;
+
+        slider.addEventListener('mousedown', () => isDown = true);
+        slider.addEventListener('touchstart', () => isDown = true);
+        window.addEventListener('mouseup', () => isDown = false);
+        window.addEventListener('touchend', () => isDown = false);
+
+        const moveSlider = (x) => {
+            const rect = slider.getBoundingClientRect();
+            let pos = x - rect.left;
+            if (pos < 0) pos = 0;
+            if (pos > rect.width) pos = rect.width;
+            
+            overlay.style.width = pos + "px";
+            handle.style.left = pos + "px";
+        }
+
+        slider.addEventListener('mousemove', (e) => { if(isDown) moveSlider(e.clientX) });
+        slider.addEventListener('touchmove', (e) => { if(isDown) moveSlider(e.touches[0].clientX) });
+
+        // --- 3. Отправка формы (Google Script) ---
+        // !!! ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ ПРОШЛОГО ШАГА !!!
+        const SCRIPT_URL = "https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXX/exec";
+
+        const form = document.getElementById('tgForm');
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            const originalText = btn.innerText;
+            
+            btn.innerText = "⏳ Отправляем...";
+            btn.style.opacity = "0.7";
+            
+            let formData = new FormData(form);
+            let data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            })
+            .then(res => {
+                btn.innerText = "✅ Успешно!";
+                btn.style.background = "#4CAF50";
+                form.reset();
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "";
+                    btn.style.opacity = "1";
+                }, 3000);
+            })
+            .catch(err => {
+                alert('Ошибка! Напишите нам в Telegram напрямую.');
+                btn.innerText = originalText;
+            });
+        });
+    </script>
+</body>
+</html>
